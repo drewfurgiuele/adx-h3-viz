@@ -1,0 +1,6 @@
+azure-kusto-data
+pandas
+geojson
+plotly
+numpy
+keplergl
