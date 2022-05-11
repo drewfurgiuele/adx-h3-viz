@@ -36,3 +36,6 @@ Note: A requirements file is also provided; you can install all the requirements
 
 Once you have all the requirements satisfied, open the notebook. Note that you will need to provide the cluster URL of your Azure Data Explorer cluster in cell #2. If you loaded a different country's data (the demo uses The Netherlands, MCC = 204), modify your where clause in the Kusto query in cell #4.
 
+When executing your query, the Notebook will prompt you for your login credentials and give you a "device code" that you will need. Depending on your OS and browser, you may not see this right away. It will appear at the bottom of the cell:
+
+![Device Code Example](./help/devicecode.png)
