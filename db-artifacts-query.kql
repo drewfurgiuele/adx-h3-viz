@@ -1,0 +1,104 @@
+﻿//Kusto commands for the H3 Visual Example
+//These commands will create the neccessary 
+
+//1: H3 Functions in Kusto
+//There are two functions worth mentioning for Kusto and H3. First, the ability to draw
+//a polygon from a known H3 cell ID with geo_h3cell_to_polygon() - 
+
+print geo_h3cell_to_polygon("862a1072fffffff")
+
+.create table RawOpenCellID (
+    RadioType: string, 
+    MCC: long, 
+    MNC: long, 
+    LAC: long, 
+    CID: string, 
+    Unit: long, 
+    Lon: real, 
+    Lat: real, 
+    Range: long, 
+    Samples: long, 
+    Changeable: long, 
+    Created: long, 
+    Updated: long, 
+    AvgSignal: long
+) 
+
+//You can also get an H3 cell ID from a point that falls within in with geo_point_to_h3cell()
+//
+
+//2: Preparing your database
+//The following scripts will create the required objects in your database.
+//First let's create the raw table which will be where we ingest data to:
+.create table RawOpenCellID ingestion csv mapping "raw_csvMapping"
+'['
+'   { "column":"RadioType","DataType":"string","Ordinal":"0"},'
+'   {"Name":"MCC","DataType":"long","Ordinal":"1"},'
+'   {"Name":"MNC","DataType":"long","Ordinal":"2"},'
+'   {"Name":"LAC","DataType":"long","Ordinal":"3"},'
+'   {"Name":"CID","DataType":"string","Ordinal":"4"},'
+'   {"Name":"Unit","DataType":"long","Ordinal":"5"},'
+'   {"Name":"Lon","DataType":"real","Ordinal":"6"},'
+'   {"Name":"Lat","DataType":"real","Ordinal":"7"},'
+'   {"Name":"Range","DataType":"long","Ordinal":"8"},'
+'   {"Name":"Samples","DataType":"long","Ordinal":"9"},'
+'   {"Name":"Changeable","DataType":"long","Ordinal":"10"},'
+'   {"Name":"Created","DataType":"long","Ordinal":"11"},'
+'   {"Name":"Updated","DataType":"long","Ordinal":"12"},'
+'   {"Name":"AvgSignal","DataType":"long","Ordinal":"13"}'
+']'
+
+//Next, create the function that will take the data in the raw table and apply H3 mappings for 'high','medium',and 'low'
+//resolutions for H3. This function also converst the created and updated time from a string to a proper datetime
+.create-or-alter function with (docstring = "Enriches the data updated timestamps and some H3 resolutions",folder = "UpdatePolicyFunctions") EnrichData() {
+RawOpenCellID
+| extend Created = unixtime_seconds_todatetime(Created), Updated= unixtime_seconds_todatetime(Updated)
+| extend H3_High = geo_point_to_h3cell(Lon, Lat, 9), H3_Medium = geo_point_to_h3cell(Lon, Lat, 6), H3_Low = geo_point_to_h3cell(Lon, Lat, 2)
+}
+
+//This section creates the "final" table that contains all the original data plus the H3 cells we calculate
+.create table OpenCellH3Data (
+    RadioType: string, 
+    MCC: long, 
+    MNC: long, 
+    LAC: long, 
+    CID: string, 
+    Unit: long, 
+    Lon: real, 
+    Lat: real, 
+    Range: long, 
+    Samples: long, 
+    Changeable: long, 
+    Created: datetime, 
+    Updated: datetime, 
+    AvgSignal: long, 
+    H3_High: string, 
+    H3_Medium: string, 
+    H3_Low: string
+) 
+
+//This update policy will fire each time data is loaded to the raw table. It will run the "enrich" function
+//from above and append the data to the final table. This table is what our sample notebook queries
+.alter table OpenCellH3Data policy update 
+@'[{ "IsEnabled": true, "Source": "RawOpenCellID ", "Query": "EnrichData()", "IsTransactional": false, "PropagateIngestionProperties": false}]'
+
+//When you reach this point, ingest your data. Use the OneClick panel in Azure Data Explorer to load your
+//location's CSV file. When it finishes, run the below code to sample the data
+
+OpenCellH3Data
+| take 100
+
+
+//This code below is our query that is used by the notebook to generate the GeoJSON formated "Features" column
+OpenCellH3Data
+| where MCC == 204
+| where isnotempty(H3_Medium)
+| summarize arg_max(Updated, *) by RadioType, MCC, MNC, LAC
+| summarize SignalStrength=avg(AvgSignal), dcount(LAC), UmtsCells = countif(RadioType == "UMTS"), LTE = countif(RadioType == "LTE") by H3_Medium
+| extend H3_Hash_Polygon = geo_h3cell_to_polygon(H3_Medium)
+| extend Features=pack(
+    "geometry", H3_Hash_Polygon,
+    "id", H3_Medium,
+    "properties",pack("value", UmtsCells),
+    "type", "Feature")
+
