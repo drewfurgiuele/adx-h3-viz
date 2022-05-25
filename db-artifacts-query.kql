@@ -1,28 +1,12 @@
 ﻿//Kusto commands for the H3 Visual Example
-//These commands will create the neccessary 
+//These commands will create the neccessary database artifacts used in the Example
+//in the blog post at: https://techcommunity.microsoft.com/t5/azure-data-explorer-blog/generating-and-visualizing-h3-indexed-data-with-kusto-and-python/ba-p/3426922
 
 //1: H3 Functions in Kusto
 //There are two functions worth mentioning for Kusto and H3. First, the ability to draw
 //a polygon from a known H3 cell ID with geo_h3cell_to_polygon() - 
 
 print geo_h3cell_to_polygon("862a1072fffffff")
-
-.create table RawOpenCellID (
-    RadioType: string, 
-    MCC: long, 
-    MNC: long, 
-    LAC: long, 
-    CID: string, 
-    Unit: long, 
-    Lon: real, 
-    Lat: real, 
-    Range: long, 
-    Samples: long, 
-    Changeable: long, 
-    Created: long, 
-    Updated: long, 
-    AvgSignal: long
-) 
 
 //You can also get an H3 cell ID from a point that falls within in with geo_point_to_h3cell()
 //
