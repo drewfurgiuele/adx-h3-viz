@@ -1,6 +1,6 @@
 # Generating and Visualizing H3 Cell Data with Azure Data Explorer and Python
 
-Azure Data Explorer and Kusto is a fanstasic engine for ingesting and processing geospatial data, and the Kusto Language has many built-in functions for working with H3. 
+Azure Data Explorer and Kusto is a fanstasic engine for ingesting and processing geospatial data, and the Kusto Language has many built-in functions for working with H3. This example compliments a blog post over on the Microsoft Tech Community that talks about using H3 functuions with Kusto: https://techcommunity.microsoft.com/t5/azure-data-explorer-blog/generating-and-visualizing-h3-indexed-data-with-kusto-and-python/ba-p/3426922
 
 This repostory has some examples of visualizing H3 data, and is designed to use the OpenCell dataset with Azure Data Explorer. To excute these examples, you'll want to follow this high-level flow:
 
